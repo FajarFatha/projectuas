@@ -3,5 +3,5 @@ pandas
 matplotlib
 sklearn
 seaborn
-streamlit=3.5
+streamlit
 opencv-python-headless
