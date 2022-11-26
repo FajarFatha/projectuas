@@ -1,1 +1,1 @@
-web: sh setup.sh && streamlit run dasar_teori.py
+web: sh setup.sh && streamlit run main.py
