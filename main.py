@@ -28,7 +28,7 @@ st.write("""
 Aplikasi Untuk Memprediksi Kemungkinan Penyakit Jantung
 """)
 
-tab1, tab2, tab3 = st.tabs(["Data Understanding", "Preprocecing", "Implementation"])
+tab1, tab2, tab3, tab4 = st.tabs(["Data Understanding", "Preprocecing","Modeling", "Implementation"])
 
 with tab1:
     st.write("""
@@ -99,12 +99,55 @@ with tab2:
 
 with tab3:
     st.write("""
-    <h5>Implementation</h5>
+    <h5>Modeling</h5>
     <br>
     """, unsafe_allow_html=True)
     X=df_new.iloc[:,0:13].values
     y=df_new.iloc[:,13].values
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3,stratify=y, random_state=42)
+    algoritma = st.radio(
+        'pilih algoritma klasifikasi',
+        ('KNN','Naive Bayes','Random Forest','Ensemble Stacking')
+    )
+    if algoritma=='KNN':
+        model = KNeighborsClassifier(n_neighbors=3)
+        filename='knn.pkl'
+    elif algoritma=='Naive Bayes':
+        model = GaussianNB()
+        filename='gaussian.pkl'
+    elif algoritma=='Random Forest':
+        model = RandomForestClassifier(n_estimators = 100)
+        filename='randomforest.pkl'
+    elif algoritma=='Ensemble Stacking':
+        estimators = [
+            ('rf_1', RandomForestClassifier(n_estimators=10, random_state=42)),
+            ('knn_1', KNeighborsClassifier(n_neighbors=10))             
+        ]
+        model = StackingClassifier(estimators=estimators, final_estimator=GaussianNB())
+        filename='stacking.pkl'
+    
+    
+    model.fit(X_train, y_train)
+    Y_pred = model.predict(X_test) 
+
+    from sklearn.metrics import confusion_matrix
+    cm = confusion_matrix(y_test,Y_pred)
+    conf_matrix = pd.DataFrame(data=cm, columns=['Positif:1', 'Negatif:0'], index=['Positif:1','Negatif:0'])
+    import matplotlib.pyplot as plt
+    plt.figure()
+    import seaborn as sns 
+    sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='YlGnBu')
+    score=metrics.accuracy_score(y_test,Y_pred)
+
+    st.write(f"Tingkat akurasi : {score*100}%")
+    st.write("Confusion Metrics")
+    st.set_option('deprecation.showPyplotGlobalUse', False)
+    st.pyplot()
+with tab4:
+    st.write("""
+    <h5>Implementation</h5>
+    <br>
+    """, unsafe_allow_html=True)
 
     age=st.number_input("umur : ")
     sex=st.selectbox(
@@ -179,35 +222,8 @@ with tab3:
     elif thal=='cacat reversibel':
         thal=2
 
-    algoritma = st.selectbox(
-        'pilih algoritma klasifikasi',
-        ('KNN','Naive Bayes','Random Forest','Ensemble Stacking')
-    )
     prediksi=st.button("Diagnosis")
     if prediksi:
-        if algoritma=='KNN':
-            model = KNeighborsClassifier(n_neighbors=3)
-            filename='knn.pkl'
-        elif algoritma=='Naive Bayes':
-            model = GaussianNB()
-            filename='gaussian.pkl'
-        elif algoritma=='Random Forest':
-            model = RandomForestClassifier(n_estimators = 100)
-            filename='randomforest.pkl'
-        elif algoritma=='Ensemble Stacking':
-            estimators = [
-                ('rf_1', RandomForestClassifier(n_estimators=10, random_state=42)),
-                ('knn_1', KNeighborsClassifier(n_neighbors=10))             
-            ]
-            model = StackingClassifier(estimators=estimators, final_estimator=GaussianNB())
-            filename='stacking.pkl'
-        
-        
-        model.fit(X_train, y_train)
-        Y_pred = model.predict(X_test) 
-
-        score=metrics.accuracy_score(y_test,Y_pred)
-
         loaded_model = pickle.load(open(filename, 'rb'))
         if scaler == 'Tanpa Scaler':
             dataArray = [age,sex,cp,trestbps,chol,fbs,restecg,thalach,exang,oldpeak,slope,ca,thal]
